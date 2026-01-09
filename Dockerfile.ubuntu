@@ -7,10 +7,14 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Asia/Bangkok
 
 # =====================================================================
-# 🧩 Install Dependencies (All-in-One)
+# 🧩 Install Dependencies (Fixed for Ubuntu 22.04)
 # =====================================================================
 RUN apt-get update && \
     apt-get install -y software-properties-common && \
+    # ✅ Enable Universe/Multiverse for older libs (ncurses5 etc.)
+    add-apt-repository universe && \
+    add-apt-repository multiverse && \
+    apt-get update && \
     # --- Install GitHub CLI Keyring ---
     curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg && \
     chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg && \
@@ -19,16 +23,16 @@ RUN apt-get update && \
     # --- Install Essential Tools & Android Deps ---
     apt-get install -y \
         git git-lfs openssh-server sudo curl wget ca-certificates \
-        bash byobu screen tmux netcat nano vim htop zip unzip tar gzip \
+        bash byobu screen tmux netcat-openbsd nano vim htop zip unzip tar gzip \
         build-essential python3 python3-pip openssl less coreutils util-linux \
-        # Android Build Dependencies
+        # Android Build Dependencies (Modernized names)
         adb autoconf automake axel bc bison ccache clang cmake expat fastboot flex \
         g++ g++-multilib gawk gcc gcc-multilib gnupg gperf imagemagick \
-        lib32ncurses5-dev lib32z1-dev libtinfo5 libc6-dev libcap-dev \
+        lib32ncurses-dev lib32z1-dev libtinfo5 libc6-dev libcap-dev \
         libexpat1-dev libgmp-dev liblz4-dev liblzma-dev libmpc-dev libmpfr-dev \
-        libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libtool libxml2 libxml2-utils \
+        libncurses-dev libncurses5 libsdl1.2-compat-dev libssl-dev libtool libxml2 libxml2-utils \
         lzop maven ncftp ncurses-dev patch patchelf pkg-config pngcrush pngquant \
-        python2.7 python3-pyelftools python-all-dev re2c schedtool squashfs-tools \
+        python3-pyelftools python3-dev re2c schedtool squashfs-tools \
         subversion texinfo w3m xsltproc zlib1g-dev lzip \
         libxml-simple-perl libswitch-perl apt-utils rsync \
         # Extra python mapping
