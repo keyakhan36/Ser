@@ -46,28 +46,20 @@ jobs:
           echo "DOCKERFILE=$FILE" >> $GITHUB_ENV
           echo "✅ Using $FILE"
 
-      - name: Compute cache key
-        id: key
-        run: |
-         HASH=$(sha256sum $DOCKERFILE entrypoint.sh | cut -d ' ' -f1 | head -n1)
-         echo "CACHE_KEY=docker-${{ inputs.os_choice }}-${HASH}" >> $GITHUB_ENV
-
-      - name: Restore docker image
-        id: cache
-        uses: actions/cache@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
         with:
-         path: docker-cache
-         key: ${{ env.CACHE_KEY }}
-         restore-keys: |
-           docker-${{ inputs.os_choice }}-
+          driver-opts: network=host
 
-      - name: Load docker image
-        if: steps.cache.outputs.cache-hit == 'true'
-        run: zstd -dc docker-cache/ssh-frp-docker.tar.zst | docker load
-
-      - name: Build Docker Image
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: docker build -f $DOCKERFILE -t ssh-frp-docker .
+      - name: Build and Load Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ env.DOCKERFILE }}
+          push: push
+          tags: ssh-frp-docker:latest
+          cache-from: type=gha,url=http://127.0.0.1:12321/
+          cache-to: type=gha,url=http://127.0.0.1:12321/,mode=max
 
       - name: Run container
         env:
@@ -95,7 +87,7 @@ jobs:
           -e PASSWORD=$PASS \
           -e BUILDBUDDY_API_KEY=$BUILDBUDDY_API_KEY \
           -p 2700:2700 \
-           ssh-frp-docker
+           ssh-frp-docker:latest
 
           echo "SSH_USER=$USERNAME" >> $GITHUB_ENV
           echo "SSH_PASS=$PASS" >> $GITHUB_ENV
@@ -126,7 +118,7 @@ jobs:
              sed -i "s/__PORT__/${RAND}/" frp/frpc.toml
              sed -i "s/__NAME__/ssh_${RAND}/" frp/frpc.toml
 
-             # Test connection (Timeout ลดเหลือ 1s)
+             # Test connection (Timeout 1s)
              timeout 1s ./frp/frpc -c frp/frpc.toml > frpc_probe.log 2>&1 || true
 
              if grep -qi "start proxy success" frpc_probe.log; then
