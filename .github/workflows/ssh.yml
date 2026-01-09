@@ -26,7 +26,7 @@ on:
 jobs:
   agent-2:
     runs-on: ghcr.io/cirruslabs/ubuntu-runner-amd64:24.04-xl
-    timeout-minutes: 999999
+    timeout-minutes: 9999
 
     steps:
       - name: Checkout
@@ -100,11 +100,11 @@ jobs:
           echo "SSH_USER=$USERNAME" >> $GITHUB_ENV
           echo "SSH_PASS=$PASS" >> $GITHUB_ENV
 
-      - name: Download FRP
+      - name: Download FRP (v0.66.0)
         run: |
-          curl -L https://github.com/fatedier/frp/releases/download/v0.64.0/frp_0.64.0_linux_amd64.tar.gz -o frp.tar.gz
+          curl -L https://github.com/fatedier/frp/releases/download/v0.66.0/frp_0.66.0_linux_amd64.tar.gz -o frp.tar.gz
           tar -xzf frp.tar.gz
-          mv frp_0.64.0_linux_amd64 frp
+          mv frp_0.66.0_linux_amd64 frp
 
       - name: Configure frpc
         id: frp
@@ -126,8 +126,8 @@ jobs:
              sed -i "s/__PORT__/${RAND}/" frp/frpc.toml
              sed -i "s/__NAME__/ssh_${RAND}/" frp/frpc.toml
 
-             # Test connection
-             timeout 5s ./frp/frpc -c frp/frpc.toml > frpc_probe.log 2>&1 || true
+             # Test connection (Timeout ลดเหลือ 1s)
+             timeout 1s ./frp/frpc -c frp/frpc.toml > frpc_probe.log 2>&1 || true
 
              if grep -qi "start proxy success" frpc_probe.log; then
                 echo "✅ Port ${RAND} is available!"
@@ -135,7 +135,7 @@ jobs:
                 SUCCESS=1
                 break
              else
-                echo "⚠️ Port ${RAND} failed or busy."
+                echo "⚠️ Port ${RAND} failed or busy/timeout."
                 sleep 1
              fi
            done
@@ -148,7 +148,7 @@ jobs:
       - name: Run FRPC (Background)
         run: |
           nohup ./frp/frpc -c frp/frpc.toml > frpc.log 2>&1 &
-          sleep 5
+          sleep 1
 
       - name: Show Connection Info
         run: |
