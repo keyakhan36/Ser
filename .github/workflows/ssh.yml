@@ -1,0 +1,163 @@
+name: Build Heavy
+
+on:
+  workflow_dispatch:
+    inputs:
+      os_choice:
+        description: "Choose OS base (ubuntu2204)"
+        type: choice
+        required: true
+        default: 'ubuntu2204'
+        options:
+         - "ubuntu2204"
+      ssh_username:
+        description: "Custom SSH username"
+        required: false
+        default: "nyarutoru"
+      ssh_password:
+        description: "Custom SSH password (blank = auto)"
+        required: false
+        default: ""
+      uptime:
+        description: "Uptime (e.g. 1h, 6h)"
+        required: false
+        default: "6h"
+
+jobs:
+  agent-2:
+    runs-on: ghcr.io/cirruslabs/ubuntu-runner-amd64:24.04-xl
+    timeout-minutes: 999999
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install tools
+        run: sudo apt-get install -y gettext-base jq bc
+
+      - name: Select Dockerfile
+        id: select
+        run: |
+          FILE="Dockerfile.ubuntu"
+          if [ ! -f "$FILE" ]; then
+            echo "❌ Error: $FILE not found!"
+            exit 1
+          fi
+          echo "DOCKERFILE=$FILE" >> $GITHUB_ENV
+          echo "✅ Using $FILE"
+
+      - name: Compute cache key
+        id: key
+        run: |
+         HASH=$(sha256sum $DOCKERFILE entrypoint.sh | cut -d ' ' -f1 | head -n1)
+         echo "CACHE_KEY=docker-${{ inputs.os_choice }}-${HASH}" >> $GITHUB_ENV
+
+      - name: Restore docker image
+        id: cache
+        uses: actions/cache@v4
+        with:
+         path: docker-cache
+         key: ${{ env.CACHE_KEY }}
+         restore-keys: |
+           docker-${{ inputs.os_choice }}-
+
+      - name: Load docker image
+        if: steps.cache.outputs.cache-hit == 'true'
+        run: zstd -dc docker-cache/ssh-frp-docker.tar.zst | docker load
+
+      - name: Build Docker Image
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: docker build -f $DOCKERFILE -t ssh-frp-docker .
+
+      - name: Run container
+        env:
+          # ส่ง API Key จาก GitHub Secrets เข้า Container
+          BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_API_KEY }}
+        run: |
+          USERNAME="${{ inputs.ssh_username }}"
+          PASS_INPUT="${{ inputs.ssh_password }}"
+          if [ -z "$PASS_INPUT" ]; then
+            PASS=$(openssl rand -base64 15 | tr -dc A-Za-z0-9 | head -c 10)
+          else
+            PASS="$PASS_INPUT"
+          fi
+          
+          echo "🚀 Starting Container..."
+          docker run -d --rm -i \
+          --name sshd-test \
+          --hostname neko-network \
+          --privileged \
+          --security-opt seccomp=unconfined \
+          --security-opt apparmor=unconfined \
+          --cap-add SYS_ADMIN \
+          --cap-add SYS_CHROOT \
+          -e USERNAME=$USERNAME \
+          -e PASSWORD=$PASS \
+          -e BUILDBUDDY_API_KEY=$BUILDBUDDY_API_KEY \
+          -p 2700:2700 \
+           ssh-frp-docker
+
+          echo "SSH_USER=$USERNAME" >> $GITHUB_ENV
+          echo "SSH_PASS=$PASS" >> $GITHUB_ENV
+
+      - name: Download FRP
+        run: |
+          curl -L https://github.com/fatedier/frp/releases/download/v0.64.0/frp_0.64.0_linux_amd64.tar.gz -o frp.tar.gz
+          tar -xzf frp.tar.gz
+          mv frp_0.64.0_linux_amd64 frp
+
+      - name: Configure frpc
+        id: frp
+        run: |
+           set -e
+           SUCCESS=0
+           mkdir -p frp
+           
+           # Loop เพื่อหา Port ว่าง (Retry 5 ครั้ง)
+           for i in {1..5}; do
+             RAND=$((2000 + RANDOM % 3001))
+             echo "🔎 Trying port ${RAND} (Attempt $i)..."
+             
+             cp frpc.toml.template frp/frpc.toml
+             sed -i "s/__FRPS_ADDR__/${{ secrets.FRPS_IP }}/" frp/frpc.toml
+             sed -i "s/__FRPS_PORT__/7000/" frp/frpc.toml
+             sed -i "s/__FRP_TOKEN__/${{ secrets.FRPS_TOKEN }}/" frp/frpc.toml
+             sed -i "s/__LOCAL_PORT__/2700/" frp/frpc.toml
+             sed -i "s/__PORT__/${RAND}/" frp/frpc.toml
+             sed -i "s/__NAME__/ssh_${RAND}/" frp/frpc.toml
+
+             # Test connection
+             timeout 5s ./frp/frpc -c frp/frpc.toml > frpc_probe.log 2>&1 || true
+
+             if grep -qi "start proxy success" frpc_probe.log; then
+                echo "✅ Port ${RAND} is available!"
+                echo "FRP_PORT=$RAND" >> $GITHUB_ENV
+                SUCCESS=1
+                break
+             else
+                echo "⚠️ Port ${RAND} failed or busy."
+                sleep 1
+             fi
+           done
+ 
+           if [ $SUCCESS -ne 1 ]; then
+            echo "❌ Failed to find available port." >&2
+            exit 1
+           fi
+
+      - name: Run FRPC (Background)
+        run: |
+          nohup ./frp/frpc -c frp/frpc.toml > frpc.log 2>&1 &
+          sleep 5
+
+      - name: Show Connection Info
+        run: |
+          echo "============================================"
+          echo "   ✅ CONNECT TO YOUR BUILD MACHINE"
+          echo "============================================"
+          echo "ssh $SSH_USER@ssh.nekolabs.site -p $FRP_PORT"
+          echo "Password: $SSH_PASS"
+          echo "============================================"
+          
+          # Keep Alive
+          sleep ${{ inputs.uptime }}

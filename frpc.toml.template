@@ -1,0 +1,12 @@
+serverAddr = "__FRPS_ADDR__"
+serverPort = __FRPS_PORT__
+
+auth.method = "token"
+auth.token  = "__FRP_TOKEN__"
+
+[[proxies]]
+name       = "__NAME__"
+type       = "tcp"
+localIP    = "127.0.0.1"
+localPort  = 2700
+remotePort = __PORT__
