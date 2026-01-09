@@ -56,7 +56,7 @@ jobs:
         with:
           context: .
           file: ${{ env.DOCKERFILE }}
-          push: push
+          push: true
           tags: ssh-frp-docker:latest
           cache-from: type=gha,url=http://127.0.0.1:12321/
           cache-to: type=gha,url=http://127.0.0.1:12321/,mode=max
