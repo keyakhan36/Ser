@@ -26,14 +26,14 @@ on:
 jobs:
   agent-2:
     runs-on: ghcr.io/cirruslabs/ubuntu-runner-amd64:24.04-xl
-    timeout-minutes: 9999
+    timeout-minutes: 99999
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install tools
-        run: sudo apt-get install -y gettext-base jq bc
+        run: sudo apt-get install -y gettext-base jq bc zstd
 
       - name: Select Dockerfile
         id: select
@@ -46,24 +46,42 @@ jobs:
           echo "DOCKERFILE=$FILE" >> $GITHUB_ENV
           echo "✅ Using $FILE"
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          driver-opts: network=host
+      # --- 💾 Cache Step ---
+      - name: Compute Cache Key
+        id: key
+        run: |
+         # สร้าง Key จาก Hash ของ Dockerfile และ Entrypoint
+         HASH=$(sha256sum $DOCKERFILE entrypoint.sh | cut -d ' ' -f1 | head -n1)
+         echo "CACHE_KEY=docker-${{ inputs.os_choice }}-${HASH}" >> $GITHUB_ENV
 
-      - name: Build and Load Docker Image
-        uses: docker/build-push-action@v6
+      - name: Setup Cache
+        id: cache
+        uses: cirruslabs/cache@v4
         with:
-          context: .
-          file: ${{ env.DOCKERFILE }}
-          push: true
-          tags: ssh-frp-docker:latest
-          cache-from: type=gha,url=http://127.0.0.1:12321/
-          cache-to: type=gha,url=http://127.0.0.1:12321/,mode=max
+         path: docker-cache
+         key: ${{ env.CACHE_KEY }}
 
+      # --- 🔄 Load or Build ---
+      - name: Load Docker Image (if cached)
+        if: steps.cache.outputs.cache-hit == 'true'
+        run: |
+          echo "📥 Loading image from cache..."
+          zstd -dc docker-cache/image.tar.zst | docker load
+
+      - name: Build Docker Image (if no cache)
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          echo "🔨 Cache miss! Building fresh image..."
+          docker build -f $DOCKERFILE -t ssh-frp-docker:latest .
+          
+          # Save image for next time
+          echo "💾 Saving image to cache..."
+          mkdir -p docker-cache
+          docker save ssh-frp-docker:latest | zstd -T0 -1 -o docker-cache/image.tar.zst
+
+      # --- 🚀 Run ---
       - name: Run container
         env:
-          # ส่ง API Key จาก GitHub Secrets เข้า Container
           BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_API_KEY }}
         run: |
           USERNAME="${{ inputs.ssh_username }}"
@@ -92,6 +110,7 @@ jobs:
           echo "SSH_USER=$USERNAME" >> $GITHUB_ENV
           echo "SSH_PASS=$PASS" >> $GITHUB_ENV
 
+      # --- 🌐 Network Setup (FRP v0.66.0) ---
       - name: Download FRP (v0.66.0)
         run: |
           curl -L https://github.com/fatedier/frp/releases/download/v0.66.0/frp_0.66.0_linux_amd64.tar.gz -o frp.tar.gz
@@ -105,7 +124,6 @@ jobs:
            SUCCESS=0
            mkdir -p frp
            
-           # Loop เพื่อหา Port ว่าง (Retry 5 ครั้ง)
            for i in {1..5}; do
              RAND=$((2000 + RANDOM % 3001))
              echo "🔎 Trying port ${RAND} (Attempt $i)..."
@@ -118,7 +136,6 @@ jobs:
              sed -i "s/__PORT__/${RAND}/" frp/frpc.toml
              sed -i "s/__NAME__/ssh_${RAND}/" frp/frpc.toml
 
-             # Test connection (Timeout 1s)
              timeout 1s ./frp/frpc -c frp/frpc.toml > frpc_probe.log 2>&1 || true
 
              if grep -qi "start proxy success" frpc_probe.log; then
@@ -151,5 +168,4 @@ jobs:
           echo "Password: $SSH_PASS"
           echo "============================================"
           
-          # Keep Alive
           sleep ${{ inputs.uptime }}
