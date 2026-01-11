@@ -25,7 +25,7 @@ on:
 
 jobs:
   test-runner-v4:
-    runs-on: ghcr.io/cirruslabs/ubuntu-runner-amd64:24.04-xl
+    runs-on: blacksmith-32vcpu-ubuntu-2404
     timeout-minutes: 360
 
     steps:
