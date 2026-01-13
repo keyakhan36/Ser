@@ -69,7 +69,6 @@ jobs:
           # Save image for next time
           echo "💾 Saving image to cache..."
           mkdir -p docker-cache
-          docker save ssh-frp-docker:latest | zstd -T0 -1 -o docker-cache/image.tar.zst
 
       # --- 🚀 Run ---
       - name: Run container
