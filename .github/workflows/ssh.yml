@@ -158,5 +158,48 @@ jobs:
           echo "ssh $SSH_USER@ssh.nekolabs.site -p $FRP_PORT"
           echo "Password: $SSH_PASS"
           echo "============================================"
+
+      # --- 📱 Send to Telegram ---
+      - name: Send SSH Details to Telegram
+        run: |
+          MESSAGE="🚀 *SSH Server Ready!*%0A%0A"
+          MESSAGE+="👤 *Username:* \`$SSH_USER\`%0A"
+          MESSAGE+="🔑 *Password:* \`$SSH_PASS\`%0A"
+          MESSAGE+="🌐 *Host:* \`ssh.nekolabs.site\`%0A"
+          MESSAGE+="🔌 *Port:* \`$FRP_PORT\`%0A%0A"
+          MESSAGE+="📝 *Command:*%0A"
+          MESSAGE+="\`\`\`%0Assh $SSH_USER@ssh.nekolabs.site -p $FRP_PORT%0A\`\`\`%0A%0A"
+          MESSAGE+="⏱️ *Uptime:* ${{ inputs.uptime }}%0A"
+          MESSAGE+="🖥️ *OS:* ${{ inputs.os_choice }}%0A"
+          MESSAGE+="📅 *Started:* $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
           
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d parse_mode="Markdown" \
+            -d text="$MESSAGE"
+
+      - name: Keep Alive
+        run: |
           sleep ${{ inputs.uptime }}
+
+      # --- 📱 Send Shutdown Notification ---
+      - name: Send Shutdown Notification to Telegram
+        if: always()
+        run: |
+          END_MESSAGE="🔴 *SSH Server Stopped*%0A%0A"
+          END_MESSAGE+="🖥️ *Server:* \`ssh.nekolabs.site:$FRP_PORT\`%0A"
+          END_MESSAGE+="👤 *User:* \`$SSH_USER\`%0A"
+          END_MESSAGE+="📅 *Ended:* $(date -u +'%Y-%m-%d %H:%M:%S UTC')%0A%0A"
+          
+          if [ "${{ job.status }}" == "success" ]; then
+            END_MESSAGE+="✅ *Status:* Uptime completed normally"
+          elif [ "${{ job.status }}" == "cancelled" ]; then
+            END_MESSAGE+="⚠️ *Status:* Workflow cancelled"
+          else
+            END_MESSAGE+="❌ *Status:* Server crashed or failed"
+          fi
+          
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d parse_mode="Markdown" \
+            -d text="$END_MESSAGE"
