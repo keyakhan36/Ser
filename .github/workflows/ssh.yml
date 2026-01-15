@@ -169,9 +169,11 @@ jobs:
           MESSAGE+="🔌 *Port:* \`$FRP_PORT\`%0A%0A"
           MESSAGE+="📝 *Command:*%0A"
           MESSAGE+="\`\`\`%0Assh $SSH_USER@ssh.nekolabs.site -p $FRP_PORT%0A\`\`\`%0A%0A"
+          MESSAGE+="🧑‍💻 *Started by:* ${{ github.actor }}%0A"
           MESSAGE+="⏱️ *Uptime:* ${{ inputs.uptime }}%0A"
           MESSAGE+="🖥️ *OS:* ${{ inputs.os_choice }}%0A"
-          MESSAGE+="📅 *Started:* $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          MESSAGE+="📅 *Started:* $(date -u +'%Y-%m-%d %H:%M:%S UTC')%0A"
+          MESSAGE+="🔗 *Workflow:* [View Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
           
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
@@ -189,6 +191,7 @@ jobs:
           END_MESSAGE="🔴 *SSH Server Stopped*%0A%0A"
           END_MESSAGE+="🖥️ *Server:* \`ssh.nekolabs.site:$FRP_PORT\`%0A"
           END_MESSAGE+="👤 *User:* \`$SSH_USER\`%0A"
+          END_MESSAGE+="🧑‍💻 *Started by:* ${{ github.actor }}%0A"
           END_MESSAGE+="📅 *Ended:* $(date -u +'%Y-%m-%d %H:%M:%S UTC')%0A%0A"
           
           if [ "${{ job.status }}" == "success" ]; then
