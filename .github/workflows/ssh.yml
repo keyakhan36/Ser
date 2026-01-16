@@ -22,6 +22,14 @@ on:
         description: "Uptime (e.g. 1h, 6h)"
         required: false
         default: "6h"
+      nt_choice:
+        description: "Send to Telegram Notification"
+        type: choice
+        required: true
+        default: 'no'
+        options:
+         - "no"
+         - "yes"
 
 jobs:
   agent-2:
@@ -161,6 +169,7 @@ jobs:
 
       # --- 📱 Send to Telegram ---
       - name: Send SSH Details to Telegram
+        if: ${{ inputs.nt_choice == 'yes' }}
         run: |
           MESSAGE="🚀 *SSH Server Ready!*%0A%0A"
           MESSAGE+="👤 *Username:* \`$SSH_USER\`%0A"
