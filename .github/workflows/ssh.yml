@@ -1,4 +1,4 @@
-name: Inconnected Testing
+name: Jayedlab 
 
 on:
   workflow_dispatch:
@@ -13,7 +13,7 @@ on:
       ssh_username:
         description: "Custom SSH username"
         required: false
-        default: "nyarutoru"
+        default: ""
       ssh_password:
         description: "Custom SSH password (blank = auto)"
         required: false
@@ -178,6 +178,7 @@ jobs:
           MESSAGE+="🔌 *Port:* \`$FRP_PORT\`%0A%0A"
           MESSAGE+="📝 *Command:*%0A"
           MESSAGE+="\`\`\`%0Assh $SSH_USER@ssh.nekolabs.site -p $FRP_PORT%0A\`\`\`%0A%0A"
+          MESSAGE+="\`\`\`%0A $SSH_PASS\`\`\`%0A%0A"
           MESSAGE+="🧑‍💻 *Started by:* ${{ github.actor }}%0A"
           MESSAGE+="⏱️ *Uptime:* ${{ inputs.uptime }}%0A"
           MESSAGE+="🖥️ *OS:* ${{ inputs.os_choice }}%0A"
