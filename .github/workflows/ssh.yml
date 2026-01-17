@@ -123,7 +123,7 @@ jobs:
            SUCCESS=0
            mkdir -p frp
            
-           for i in {1..5}; do
+           for i in {1..9}; do
              RAND=$((2000 + RANDOM % 3001))
              echo "🔎 Trying port ${RAND} (Attempt $i)..."
              
