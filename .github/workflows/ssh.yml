@@ -135,9 +135,9 @@ jobs:
              sed -i "s/__PORT__/${RAND}/" frp/frpc.toml
              sed -i "s/__NAME__/ssh_${RAND}/" frp/frpc.toml
 
-             timeout 1s ./frp/frpc -c frp/frpc.toml > frpc_probe.log 2>&1 || true
+             timeout 3s ./frp/frpc -c frp/frpc.toml > frpc_probe.log 2>&1 || true
 
-             if grep -qi "start proxy success" frpc_probe.log; then
+             if grep -Eqi "start proxy success|new proxy.*success" frpc_probe.log; then
                 echo "✅ Port ${RAND} is available!"
                 echo "FRP_PORT=$RAND" >> $GITHUB_ENV
                 SUCCESS=1
