@@ -76,18 +76,7 @@ cat <<EOF > /etc/profile.d/rbe_env.sh
 # Disable compression to save CPU (Trade disk space for speed)
 export USE_CCACHE=1
 export CCACHE_EXEC=/usr/bin/ccache
-export CCACHE_COMPRESS=0  
-export CCACHE_DIR=/var/tmp/ccache # Adjust if needed
 
-# ⚡ 2. Skip Unnecessary Checks (HUGE SAVING)
-# Skip ABI compatibility checks (We are custom ROM, not Google Vendor)
-export SKIP_ABI_CHECKS=true
-# Skip artifact path requirements (Prevent errors on some trees)
-export DISABLE_ARTIFACT_PATH_REQUIREMENTS=true
-
-# ⚡ 3. Java Optimization
-# Give Java tools plenty of RAM to avoid GC lags
-export _JAVA_OPTIONS="-Xmx6g"
 
 # --- Enable RBE and General Settings ---
 export USE_RBE=1
@@ -96,15 +85,6 @@ export NINJA_REMOTE_NUM_JOBS=2000
 
 # ⚡ Performance: Unix Socket for IPC
 export RBE_server_address="unix:///tmp/reproxy.sock"
-
-# 🛠️ Tweak: Network & Cache
-export RBE_cas_concurrency=500
-export RBE_canonicalize_working_dir=true
-export RBE_execution_timeout=30m
-
-# 🛡️ Stability: Retries
-export RBE_net_retries=3
-export RBE_num_retries=2
 
 # Logging
 export RBE_QUIET=1
