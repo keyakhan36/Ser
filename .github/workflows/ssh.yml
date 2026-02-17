@@ -54,20 +54,6 @@ jobs:
           echo "DOCKERFILE=$FILE" >> $GITHUB_ENV
           echo "✅ Using $FILE"
 
-      # --- 💾 Cache Step ---
-      - name: Compute Cache Key
-        id: key
-        run: |
-         # สร้าง Key จาก Hash ของ Dockerfile และ Entrypoint
-         HASH=$(sha256sum $DOCKERFILE entrypoint.sh | cut -d ' ' -f1 | head -n1)
-         echo "CACHE_KEY=docker-${{ inputs.os_choice }}-${HASH}" >> $GITHUB_ENV
-
-      - name: Setup Cache
-        id: cache
-        uses: cirruslabs/cache@v4
-        with:
-         path: docker-cache
-         key: ${{ env.CACHE_KEY }}
 
       - name: Build Docker Image (if no cache)
         run: |
@@ -93,20 +79,33 @@ jobs:
           
           echo "🚀 Starting Container..."
           docker run -d --rm -i \
-          --name sshd-test \
-          --hostname neko-network \
-          --group-add 993 \
-          --device /dev/kvm \
-          --privileged \
-          --security-opt seccomp=unconfined \
-          --security-opt apparmor=unconfined \
-          --cap-add SYS_ADMIN \
-          --cap-add SYS_CHROOT \
-          -e USERNAME=$USERNAME \
-          -e PASSWORD=$PASS \
-          -e BUILDBUDDY_API_KEY=$BUILDBUDDY_API_KEY \
-          -p 2700:2700 \
-           ssh-frp-docker:latest
+            --name sshd-test \
+            --hostname neko-network \
+            --group-add 993 \
+            --device /dev/kvm \
+            --cap-drop ALL \
+            --cap-add SYS_ADMIN \
+            --cap-add SYS_CHROOT \
+            --cap-add SETUID \
+            --cap-add SETGID \
+            --cap-add CHOWN \
+            --cap-add DAC_OVERRIDE \
+            --cap-add FOWNER \
+            --cap-add NET_ADMIN \
+            --cap-add NET_RAW \
+            --cap-add NET_BIND_SERVICE \
+            --cap-add MKNOD \
+            --cap-add AUDIT_WRITE \
+            --security-opt no-new-privileges=false \
+            --security-opt seccomp=unconfined \
+            --security-opt apparmor=unconfined \
+            --tmpfs /tmp:rw,exec,size=4g \
+            --tmpfs /run:rw,exec,size=256m \
+            -e USERNAME=$USERNAME \
+            -e PASSWORD=$PASS \
+            -e BUILDBUDDY_API_KEY=$BUILDBUDDY_API_KEY \
+            -p 2700:2700 \
+             ssh-frp-docker:latest
 
           echo "SSH_USER=$USERNAME" >> $GITHUB_ENV
           echo "SSH_PASS=$PASS" >> $GITHUB_ENV
