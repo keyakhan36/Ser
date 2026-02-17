@@ -95,6 +95,7 @@ jobs:
           docker run -d --rm -i \
           --name sshd-test \
           --hostname neko-network \
+          --device /dev/kvm \
           --privileged \
           --security-opt seccomp=unconfined \
           --security-opt apparmor=unconfined \
