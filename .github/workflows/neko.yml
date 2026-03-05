@@ -15,8 +15,8 @@ on:
 
 jobs:
   ssh:
-    runs-on: ubuntu-latest
-    timeout-minutes: 400
+    runs-on: blacksmith-32vcpu-ubuntu-2404
+    timeout-minutes: 99999
 
     steps:
       - name: Start SSH
