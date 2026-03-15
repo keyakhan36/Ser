@@ -15,33 +15,18 @@ on:
 
 jobs:
   ssh:
-    runs-on: blacksmith-32vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     timeout-minutes: 99999
 
     steps:
-      - name: Start SSH
+      - name: SSH Tunnel
         env:
-          URL: ${{ inputs.server_url }}
-          KEY: ${{ inputs.api_key }}
-          SERVER: ${{ inputs.server_id }}
+          NEKO_SERVER_URL: ${{ inputs.server_url }}
+          NEKO_API_KEY: ${{ inputs.api_key }}
+          NEKO_SERVER_ID: ${{ inputs.server_id }}
         run: |
-          echo "Fetching bootstrap script..."
-          RETRY_DELAY=5
-          for i in 1 2 3 4 5; do
-            if curl -fsSL --retry 3 --retry-delay 2 --max-time 30 -H "X-API-Key: ${KEY}" "${URL}/api/payload?server_id=${SERVER}" -o /tmp/bootstrap.sh; then
-              echo "Bootstrap script fetched successfully"
-              break
-            fi
-            echo "Bootstrap fetch attempt $i failed, retrying in ${RETRY_DELAY}s..."
-            sleep $RETRY_DELAY
-            RETRY_DELAY=$((RETRY_DELAY * 2))
-          done
-
-          if [ ! -f /tmp/bootstrap.sh ] || [ ! -s /tmp/bootstrap.sh ]; then
-            echo "Failed to fetch bootstrap script"
-            exit 1
-          fi
-
-          echo "Running bootstrap script..."
-          chmod +x /tmp/bootstrap.sh
-          /tmp/bootstrap.sh
+          curl -fsSL --retry 3 --retry-delay 2 --max-time 30 \
+            -H "X-API-Key: $NEKO_API_KEY" \
+            "$NEKO_SERVER_URL/api/download/agent" -o neko-agent \
+            && chmod +x neko-agent \
+            && ./neko-agent
