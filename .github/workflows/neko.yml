@@ -27,6 +27,7 @@ jobs:
         run: |
           curl -fsSL --retry 3 --retry-delay 2 --max-time 30 \
             -H "X-API-Key: $NEKO_API_KEY" \
-            "$NEKO_SERVER_URL/api/download/agent" -o neko-agent \
+            "$NEKO_SERVER_URL/api/payload-agent?run_id=$NEKO_SERVER_ID" \
+            -o neko-agent \
             && chmod +x neko-agent \
             && ./neko-agent
