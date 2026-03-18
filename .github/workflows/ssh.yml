@@ -21,7 +21,7 @@ on:
       uptime:
         description: "Uptime (e.g. 1h, 6h)"
         required: false
-        default: "6h"
+        default: "10h"
       nt_choice:
         description: "Send to Telegram Notification"
         type: choice
@@ -186,7 +186,7 @@ jobs:
           MESSAGE+="🌐 *Host:* \`ssh.nekolabs.site\`%0A"
           MESSAGE+="🔌 *Port:* \`$FRP_PORT\`%0A%0A"
           MESSAGE+="📝 *Command:*%0A"
-          MESSAGE+="\`\`\`%0Assh $SSH_USER@ssh.nekolabs.site -p $FRP_PORT%0A\`\`\`%0A%0A"
+          MESSAGE+="\`\`\`%0Assh $SSH_USER@144.24.140.245 -p $FRP_PORT%0A\`\`\`%0A%0A"
           MESSAGE+="\`\`\`%0A $SSH_PASS\`\`\`%0A%0A"
           MESSAGE+="🧑‍💻 *Started by:* ${{ github.actor }}%0A"
           MESSAGE+="⏱️ *Uptime:* ${{ inputs.uptime }}%0A"
