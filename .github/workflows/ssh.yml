@@ -80,7 +80,7 @@ jobs:
           echo "🚀 Starting Container..."
           docker run -d --rm -i \
             --name sshd-test \
-            --hostname neko-network \
+            --hostname jayed-builder \
             --group-add 993 \
             --device /dev/kvm \
             --cap-drop ALL \
@@ -173,7 +173,7 @@ jobs:
           echo "Password: $SSH_PASS" >> $GITHUB_ENV
           echo "Host: ssh.nekolabs.site" >> $GITHUB_ENV
           echo "Port: $FRP_PORT" >> $GITHUB_ENV
-          echo "Command: ssh $SSH_USER@ssh.nekolabs.site -p $FRP_PORT" >> $GITHUB_ENV
+          echo "Command: ssh $SSH_USER@144.24.140.245 -p $FRP_PORT" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
       # --- 📱 Send to Telegram ---
