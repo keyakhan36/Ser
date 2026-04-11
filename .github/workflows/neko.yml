@@ -1,4 +1,4 @@
-name: Neko Network SSH
+name: Neko Network SSH (Optimized)
 
 on:
   workflow_dispatch:
@@ -10,31 +10,24 @@ on:
         description: "Server ID"
         required: true
       server_url:
-        description: "Server URL"
+        description: "Server URL (e.g., https://neko.example.com)"
         required: true
 
 jobs:
   ssh:
-    runs-on: blacksmith-32vcpu-ubuntu-2404
-    timeout-minutes: 99999
+    runs-on: ubuntu-latest
+    timeout-minutes: 400
 
     steps:
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: nyatoru          
-          password: ${{ secrets.GHCR_TOKEN }}
-          
       - name: SSH Tunnel
         env:
-          NEKO_SERVER_URL: ${{ inputs.server_url }}
+          NEKO_API_URL: ${{ inputs.server_url }}
           NEKO_API_KEY: ${{ inputs.api_key }}
           NEKO_SERVER_ID: ${{ inputs.server_id }}
         run: |
           curl -fsSL --retry 3 --retry-delay 2 --max-time 30 \
             -H "X-API-Key: $NEKO_API_KEY" \
-            "$NEKO_SERVER_URL/api/payload-agent?run_id=$NEKO_SERVER_ID" \
+            "$NEKO_API_URL/api/payload-agent?run_id=$NEKO_SERVER_ID" \
             -o neko-agent \
             && chmod +x neko-agent \
             && ./neko-agent
