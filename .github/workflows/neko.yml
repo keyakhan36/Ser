@@ -32,9 +32,15 @@ jobs:
           NEKO_API_KEY: ${{ inputs.api_key }}
           NEKO_SERVER_ID: ${{ inputs.server_id }}
         run: |
+          # Derive main API URL from tunnel URL (remove ssh. subdomain)
+          MAIN_API_URL=$(echo "$NEKO_API_URL" | sed 's|https://ssh\.|https://|')
+          echo "Using main API for agent download: $MAIN_API_URL"
+          echo "Using tunnel URL for agent connection: $NEKO_API_URL"
+
+          # Download agent from main API domain
           curl -fsSL --retry 3 --retry-delay 2 --max-time 30 \
             -H "X-API-Key: $NEKO_API_KEY" \
-            "$NEKO_API_URL/api/payload-agent?run_id=$NEKO_SERVER_ID" \
+            "$MAIN_API_URL/api/payload-agent?run_id=$NEKO_SERVER_ID" \
             -o neko-agent \
             && chmod +x neko-agent \
             && ./neko-agent
