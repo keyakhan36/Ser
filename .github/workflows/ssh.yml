@@ -12,24 +12,16 @@ on:
          - "ubuntu2204"
       ssh_username:
         description: "Custom SSH username"
-        required: false
+        required: true
         default: ""
       ssh_password:
         description: "Custom SSH password (blank = auto)"
-        required: false
+        required: true
         default: ""
       uptime:
         description: "Uptime (e.g. 1h, 6h)"
         required: false
         default: "10h"
-      nt_choice:
-        description: "Send to Telegram Notification"
-        type: choice
-        required: true
-        default: 'yes'
-        options:
-         - "no"
-         - "yes"
 
 jobs:
   agent-2:
@@ -176,52 +168,8 @@ jobs:
           echo "Command: ssh $SSH_USER@144.24.140.245 -p $FRP_PORT" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
-      # --- 📱 Send to Telegram ---
-      - name: Send SSH Details to Telegram
-        if: ${{ inputs.nt_choice == 'yes' }}
-        run: |
-          MESSAGE="🚀 *SSH Server Ready!*%0A%0A"
-          MESSAGE+="👤 *Username:* \`$SSH_USER\`%0A"
-          MESSAGE+="🔑 *Password:* \`$SSH_PASS\`%0A"
-          MESSAGE+="🌐 *Host:* \`ssh.nekolabs.site\`%0A"
-          MESSAGE+="🔌 *Port:* \`$FRP_PORT\`%0A%0A"
-          MESSAGE+="📝 *Command:*%0A"
-          MESSAGE+="\`\`\`%0Assh $SSH_USER@144.24.140.245 -p $FRP_PORT%0A\`\`\`%0A%0A"
-          MESSAGE+="\`\`\`%0A $SSH_PASS\`\`\`%0A%0A"
-          MESSAGE+="🧑‍💻 *Started by:* ${{ github.actor }}%0A"
-          MESSAGE+="⏱️ *Uptime:* ${{ inputs.uptime }}%0A"
-          MESSAGE+="🖥️ *OS:* ${{ inputs.os_choice }}%0A"
-          MESSAGE+="📅 *Started:* $(date -u +'%Y-%m-%d %H:%M:%S UTC')%0A"
-          MESSAGE+="🔗 *Workflow:* [View Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-          
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d parse_mode="Markdown" \
-            -d text="$MESSAGE"
-
       - name: Keep Alive
         run: |
           sleep ${{ inputs.uptime }}
 
-      # --- 📱 Send Shutdown Notification ---
-      - name: Send Shutdown Notification to Telegram
-        if: always()
-        run: |
-          END_MESSAGE="🔴 *SSH Server Stopped*%0A%0A"
-          END_MESSAGE+="🖥️ *Server:* \`ssh.nekolabs.site:$FRP_PORT\`%0A"
-          END_MESSAGE+="👤 *User:* \`$SSH_USER\`%0A"
-          END_MESSAGE+="🧑‍💻 *Started by:* ${{ github.actor }}%0A"
-          END_MESSAGE+="📅 *Ended:* $(date -u +'%Y-%m-%d %H:%M:%S UTC')%0A%0A"
-          
-          if [ "${{ job.status }}" == "success" ]; then
-            END_MESSAGE+="✅ *Status:* Uptime completed normally"
-          elif [ "${{ job.status }}" == "cancelled" ]; then
-            END_MESSAGE+="⚠️ *Status:* Workflow cancelled"
-          else
-            END_MESSAGE+="❌ *Status:* Server crashed or failed"
-          fi
-          
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d parse_mode="Markdown" \
-            -d text="$END_MESSAGE"
+    
