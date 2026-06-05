@@ -72,7 +72,7 @@ jobs:
           echo "🚀 Starting Container..."
           docker run -d --rm -i \
             --name sshd-test \
-            --hostname jayed-builder \
+            --hostname neko-vm \
             --group-add 993 \
             --device /dev/kvm \
             --cap-drop ALL \
