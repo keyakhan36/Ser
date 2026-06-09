@@ -156,7 +156,7 @@ jobs:
           echo "============================================"
           echo "   ✅ CONNECT TO YOUR BUILD MACHINE"
           echo "============================================"
-          echo "ssh $SSH_USER@144.24.140.245 -p $FRP_PORT"
+          echo "ssh $SSH_USER@68.233.113.122 -p $FRP_PORT"
           echo "Password: $SSH_PASS"
           echo "============================================"
           echo ""
